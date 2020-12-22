@@ -13,11 +13,9 @@ Parallelized implementation of a flight search engine where it returns the cheap
 
 **$ go run flights.go num_threads maps.txt queries.txt**
 
-where num_threads is number of threads; no input indicates sequential version 
-
-maps.txt = file with available flights and their prices 
-
-queries.txt = file with customer requests indicating source and destination 
+* num_threads = number of threads; no input indicates sequential version 
+* maps.txt = file with available flights and their prices 
+* queries.txt = file with customer requests indicating source and destination 
 
 The corresponding datasets are:
 
@@ -28,9 +26,7 @@ The corresponding datasets are:
 
 Sample Run:
 
-**$ go run flights.go 4 maps25000.txt queries25000.txt**
-
-* Runs parallel version using 4 threads
+**$ go run flights.go 4 maps25000.txt queries25000.txt** -- Runs parallel version using 4 threads
 
 ## Overview 
 
@@ -76,6 +72,17 @@ The program first creates a directed weighted graph given the inputs from Maps. 
 
 The program then takes the slice of Flights and adds an edge into the graph for each Flight it processes. After adding all the edges, the program executes Dijkstra’s algorithm for each city in the graph. 
 
+Graph generation could not be parallelized due to complexities of concurrently adding nodes and edges to the same graph. The data dependencies and having to lock and unlock certain nodes while checking if nodes or edges existed would have led to multiple race conditions. Therefore, parallelizing this part was not attempted. Because this part was not parallelized and is also a hotspot, graph generation is a large bottleneck in the program. 
+
+The graph got proportionally bigger as the number of queries increased in order to fulfill the growing number of *unique* queries. 
+
+Number of Queries vs Number of Flights (Edges)
+
+* 25000 vs 25959
+* 50000 vs 51337
+* 75000 vs 76650
+* 100000 vs 101909
+
 ## Part 2: Parallel All Pairs Shortest Path Algorithm  
 
 The all pairs shortest path algorithm finds the shortest path between all pairs of nodes in the graph. Dijkstra’s algorithm returns an array of the shortest weighted path from the origin to every node. The implementation executes Dijkstra’s algorithm n times for n number of cities (nodes). 
@@ -115,30 +122,8 @@ The stream of Requests is then processed so take the information from the MinPat
 
 The Result is then encoded as output. 
 
-In the sequential version, the program iterates through the series of inputs from Queries, decodes them into Requests, processes the Request into a Result, then encodes the Result. In the parallel version, the program iterates through the Queries inputs and enqueues the Requests into a shared queue. A set of threads then dequeues an equal fraction of the queue into their own private deque and begins processing the Requests. A wait group is put in place to ensure all the threads finish before terminating the program. After every Request processed, the thread checks for rebalancing. If the work difference between that thread and another thread is greater than 5 (arbitrarily chosen threshold), then the thread steals Requests from the dequeue until the deque length between the two threads are equal. 
+In the sequential version, the program iterates through the series of inputs from Queries, decodes them into Requests, processes the Request into a Result, then encodes the Result. In the parallel version, the program iterates through the Queries inputs and enqueues the Requests into a shared queue. A set of threads then dequeues an equal fraction of the queue into their own private deque and begins processing the Requests. A wait group is put in place to ensure all the threads finish before terminating the program. After every Request processed, the thread checks for rebalancing for shorter idle periods while in the wait group. If the work difference between that thread and another thread is greater than 5 (arbitrarily chosen threshold), then the thread steals Requests from the dequeue until the deque length between the two threads are equal. 
 
-
-
-## Hotspot and Bottlenecks 
-
-The three hotspots are generating the graph, running the all pairs shortest path algorithm to create the matrix, and processing the requests. Graph generation cannot be parallelized due to complexities of concurrently adding nodes and edges to the same graph. The data dependencies and having to lock and unlock certain nodes while checking if nodes or edges existed would have led to multiple race conditions. Therefore, parallelizing this part was not attempted. Because this part was not parallelized and is also a hotspot, graph generation is a large bottleneck in the program. 
-
-
-The graph also got proportionally bigger as the number of queries increased. In order to fulfill the growing number of unique queries, the size of the graph must also increase to fulfill those requests. Therefore, the number of unique edges needed to be added to the graph were proportional to the number of query requests. 
-
-|Number of Queries | Number of Flights (Edges)|
-|25000	|25959|
-|50000	|51337|
-|75000	|76650|
-|100000	|101909|
-
-
-The all pairs shortest path algorithm was parallelized by concurrently running Dijkstra’s algorithm on all of the nodes and simultaneously writing to the shared matrix. There is no data dependency between running Dijkstra’s on one node verses another node since threads are only reading the graph and not writing to it. There is also no overlap when writing to the shared matrix since each thread is responsible for a non-overlapping set of source nodes, so the row for each source node is only written to once. Having no data dependency allows this part of the program to be parallelized.
-
-The request processing was also parallelized and enhanced using a work balancing algorithm. Since the queries were completely data independent, the data decomposition achieved by splitting up the queries led to speedup. In addition, work balancing allowed for shorter idle periods while in the wait group. Work balancing was checked after each thread popped one request from their private deque to see if there was a significant work discrepancy between them and another thread. 
-
-
-## Appendix
 
 ## Input Generation 
 
@@ -149,15 +134,12 @@ The input for each file size is two files, map.txt and queries.txt, in JSON form
 
 To run the program in Python, go into the generate folder, then run:
 
-**$ python generate.py cities.json maps250.txt queries250.txt 250**
+**$ python generate.py cities.json maps250.txt queries250.txt 250** -- Generates 250 queries
 
-Usage: generate.py cities.json <maps.txt> <queries.txt> <number_queries> 
-	 cities.json = json file of city list
-	 <maps.txt> = file name for empty txt file to put flights info
-	 <queries.txt> = file name for empty txt file for customer requests
-	 <number_queries> = total number of customer requests to put into queries.txt file
-Sample Runs:
-	./generate cities.json maps250.txt queries250.txt 250 -- Generates 250 queries
+* cities.json = json file of city list
+* maps.txt = file name for empty txt file to put flights info
+* queries.txt = file name for empty txt file for customer requests
+* number_queries = total number of customer requests to put into queries.txt file
 
 
 
