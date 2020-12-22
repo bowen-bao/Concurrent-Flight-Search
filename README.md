@@ -6,12 +6,14 @@ Parallelized implementation of a flight search engine where it returns the cheap
 'cd' into the 'flights' folder, then run the command:
 
 1. Sequential version 
-$ go run flights.go maps.txt queries.txt
+
+**$ go run flights.go maps.txt queries.txt**
 
 2. Parallel version 
-$ go run flights.go 4 maps.txt queries.txt
 
-where 4 is number of threads; no input indicates sequential version 
+**$ go run flights.go num_threads maps.txt queries.txt**
+
+where num_threads is number of threads; no input indicates sequential version 
 
 maps.txt = file with available flights and their prices 
 
@@ -19,10 +21,16 @@ queries.txt = file with customer requests indicating source and destination
 
 The corresponding datasets are:
 
-* maps25000.txt queries25000.txt 
-* maps50000.txt queries50000.txt 
-* maps75000.txt queries75000.txt 
-* maps100000.txt queries100000.txt 
+* maps25000.txt, queries25000.txt 
+* maps50000.txt, queries50000.txt 
+* maps75000.txt, queries75000.txt 
+* maps100000.txt, queries100000.txt 
+
+Sample Run:
+
+**$ go run flights.go 4 maps25000.txt queries25000.txt**
+
+* Runs parallel version using 4 threads
 
 ## Overview 
 
@@ -64,11 +72,7 @@ For each request, the server will output a response that includes the correspond
 
 The program first creates a directed weighted graph given the inputs from Maps. The JSON objects from maps.txt are decoded and created into a slice of objects called Flight where Flight takes the form of: 
 
-type Flight struct{
-   Origin	string
-   Destination 	string
-   Price     	int
-}
+{Origin string, Destination string, Price int}
 
 The program then takes the slice of Flights and adds an edge into the graph for each Flight it processes. After adding all the edges, the program executes Dijkstra’s algorithm for each city in the graph. 
 
@@ -78,12 +82,7 @@ The all pairs shortest path algorithm finds the shortest path between all pairs 
 
 The information for the shortest path is stored in an object called MinPath that takes the form: 
 
-type MinPath struct{
-   Source    	string
-   Destination    	string
-   Price     	int
-   Path      	[]string
-}
+{Source string, Destination string, Price int, Path []string}
  
 The MinPaths are stored in a matrix of indices i, j where i represents the index of the source city and j represents the index of the destination city. 
 
@@ -108,21 +107,11 @@ In the sequential version, this is executed via iterating through every node. In
 
 After creating the matrix of cheapest paths, the program processes the inputs from Queries file and returns a queue of Request objects which takes the form of 
 
-type Request struct{
-   ID           	int
-   Origin        	string
-   Destination 	string
-}
+{ID int, Origin string, Destination string}
 
 The stream of Requests is then processed so take the information from the MinPath of the corresponding source and destination locations from the matrix and outputs a Result object in the form of 
 
-type Result struct{
-   ID           	int
-   Origin        	string
-   Destination 	string
-   Price     	int
-   Path      	[]string
-}
+{ID int, Origin string, Destination string, Price int, Path []string}
 
 The Result is then encoded as output. 
 
@@ -137,11 +126,11 @@ The three hotspots are generating the graph, running the all pairs shortest path
 
 The graph also got proportionally bigger as the number of queries increased. In order to fulfill the growing number of unique queries, the size of the graph must also increase to fulfill those requests. Therefore, the number of unique edges needed to be added to the graph were proportional to the number of query requests. 
 
-Number of Queries vs Number of Flights (Edges)
-25000	25959
-50000	51337
-75000	76650
-100000	101909
+|Number of Queries | Number of Flights (Edges)|
+|25000	|25959|
+|50000	|51337|
+|75000	|76650|
+|100000	|101909|
 
 
 The all pairs shortest path algorithm was parallelized by concurrently running Dijkstra’s algorithm on all of the nodes and simultaneously writing to the shared matrix. There is no data dependency between running Dijkstra’s on one node verses another node since threads are only reading the graph and not writing to it. There is also no overlap when writing to the shared matrix since each thread is responsible for a non-overlapping set of source nodes, so the row for each source node is only written to once. Having no data dependency allows this part of the program to be parallelized.
@@ -155,16 +144,12 @@ The request processing was also parallelized and enhanced using a work balancing
 
 The input for each file size is two files, map.txt and queries.txt, in JSON format. The python and JSON file generating this input is in the generate folder. 
 
-•	generate
-o	generate.py
-o	cities.json
-
-•	generate.py takes cities.json as an input to create a map and query file based on the number of requests. 
-•	cities.json is a JSON file of a list of all the cities in the world. It was taken from https://github.com/lutangar/cities.json/blob/master/cities.json
+* generate.py takes cities.json as an input to create a map and query file based on the number of requests. 
+* cities.json is a JSON file of a list of all the cities in the world. It was taken from https://github.com/lutangar/cities.json/blob/master/cities.json
 
 To run the program in Python, go into the generate folder, then run:
 
-$ ./ python generate.py cities.json maps250.txt queries250.txt 250
+**$ python generate.py cities.json maps250.txt queries250.txt 250**
 
 Usage: generate.py cities.json <maps.txt> <queries.txt> <number_queries> 
 	 cities.json = json file of city list
