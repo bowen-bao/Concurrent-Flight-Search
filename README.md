@@ -5,13 +5,9 @@ Parallelized implementation of a flight search engine where it returns the cheap
 
 'cd' into the 'flights' folder, then run the command:
 
-1. Sequential version 
+**$ go run flights.go maps.txt queries.txt** -- sequential version 
 
-**$ go run flights.go maps.txt queries.txt**
-
-2. Parallel version 
-
-**$ go run flights.go num_threads maps.txt queries.txt**
+**$ go run flights.go num_threads maps.txt queries.txt** -- parallel version 
 
 * num_threads = number of threads; no input indicates sequential version 
 * maps.txt = file with available flights and their prices 
@@ -26,7 +22,7 @@ The corresponding datasets are:
 
 Sample Run:
 
-**$ go run flights.go 4 maps25000.txt queries25000.txt** -- Runs parallel version using 4 threads
+**$ go run flights.go 4 maps25000.txt queries25000.txt** -- runs parallel version using 4 threads
 
 ## Overview 
 
