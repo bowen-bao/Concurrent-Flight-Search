@@ -3,7 +3,7 @@ Parallelized implementation of a flight search engine where it returns the cheap
 
 ## Usage 
 
-'cd' into the 'flights' folder, then run the command:
+**'cd' into the 'flights' folder**, then run the command:
 
 **$ go run flights.go maps.txt queries.txt** -- sequential version 
 
@@ -128,7 +128,7 @@ The input for each file size is two files, map.txt and queries.txt, in JSON form
 * generate.py takes cities.json as an input to create a map and query file based on the number of requests. 
 * cities.json is a JSON file of a list of all the cities in the world. It was taken from https://github.com/lutangar/cities.json/blob/master/cities.json
 
-To run the program in Python, go into the generate folder, then run:
+To run the program in Python, **go into the generate folder**, then run:
 
 **$ python generate.py cities.json maps250.txt queries250.txt 250** -- Generates 250 queries
 
