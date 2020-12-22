@@ -5,43 +5,24 @@ Parallelized implementation of a flight search engine where it returns the cheap
 
 'cd' into the 'flights' folder, then run the command:
 
-$ ./ go run flights.go map.txt queries.txt
+1. Sequential version 
+$ go run flights.go maps.txt queries.txt
 
-Usage: flights number_of_threads maps.txt queries.txt 
+2. Parallel version 
+$ go run flights.go 4 maps.txt queries.txt
 
-        number_of_threads = the number of threads to be part of the parallel version; no input indicates sequential version
+where 4 is number of threads; no input indicates sequential version 
 
-        maps.txt = file with available flights and their prices 
+maps.txt = file with available flights and their prices 
 
-        queries.txt = file with customer requests indicating source and destination 
+queries.txt = file with customer requests indicating source and destination 
 
-## Setup 
+The corresponding datasets are:
 
-This directory has the following structure:
-
-####	balancing (work balancing) 
-#####	balancing.go
-####	bookings (sequential and parallel functions)
-#####	bookings.go
-####	deque	
-#####	deque.go
-####	flights	(main function taking input files)
-#####	flights.go
-#####	maps25000.txt (and other datasets)
-#####	queries25000.txt (and other datasets)
-####	futures
-#####	futures.go
-####	generate (used to generate input)
-#####	cities.json
-#####	generate.py
-####	go.mod
-####	graph 
-#####	graph.go
-####	heapq	(used to implement Dijkstra in graph package)
-#####	heapq.go
-####	queue
-#####	queue.go
-####	README
+* maps25000.txt queries25000.txt 
+* maps50000.txt queries50000.txt 
+* maps75000.txt queries75000.txt 
+* maps100000.txt queries100000.txt 
 
 ## Overview 
 
